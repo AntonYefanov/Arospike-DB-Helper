@@ -28,10 +28,16 @@ class helper_DB(QtWidgets.QMainWindow):
         self.ui.btnActivate.clicked.connect(self.on_activate_button)
         self.ui.btnDeactivate.clicked.connect(self.on_deactivate_button)
         self.ui.btnDelete.clicked.connect(self.on_delete_button)
+        self.ui.btnChange.clicked.connect(self.on_change_button_click)
+
+        # self.ui.tableWidget.cellClicked.connect(self.on_cell_click)
+        self.ui.tableWidget.itemSelectionChanged.connect(self.on_cell_click)
 
         self.commm.addClient.connect(self.add_client_to_table)
         self.commm.deinitTable.connect(self.deinit_tables)
         self.commm.enableUI.connect(self.enable_ui)
+
+        self.ui.groupBox.setEnabled(False)
 
     def activate(self):
         clients = self.DB.getClients()
@@ -212,6 +218,89 @@ class helper_DB(QtWidgets.QMainWindow):
 
         com.setMessage("Client " + str(client['ID']) + " was changed")
         com.newMessage.emit()
+
+    def change(self):
+        selected_items = self.ui.tableWidget.selectedItems()
+        if len(selected_items) == 0:
+            return
+        # print(row, col)
+        ID = int(self.ui.sBxID.value())
+        Instrument = self.ui.leInstrument.text()
+        Buy = self.ui.dsBxBuy.value()
+        Sell = self.ui.dsBxSell.value()
+        Logic = self.ui.chBxLogic.isChecked()
+        Delay = self.ui.sBxDelay.value()
+        Active = self.ui.chBxActive.isChecked()
+        Stop = self.ui.chBxStop.isChecked()
+        IP = self.ui.leIP.text()
+
+        bins = {
+            'ID': ID,
+            'Instrument': Instrument,
+            'Diff_long': Buy,
+            'Diff_short': Sell,
+            'Logic': Logic,
+            'Delay': Delay,
+            'Active': Active,
+            'Flag': 0,
+            'Change_fl': 1,
+            'Stop_on_execute': Stop,
+            "IP": IP
+        }
+        print(bins)
+        ch = self.DB.editClient(ID, bins)
+        print("ch is", ch)
+        self.on_connect_button_click()
+
+    def on_change_button_click(self):
+        self.disable_ui()
+        self.ui.groupBox.setEnabled(False)
+        thread_change = threading.Thread(target=self.change, args=())
+        thread_change.setDaemon(True)
+        thread_change.start()
+
+    def on_cell_click(self):
+        selected_items = self.ui.tableWidget.selectedItems()
+        if len(selected_items) == 0:
+            return
+        # print(row, col)
+        ID = int(selected_items[0].text())
+        Instrument = selected_items[1].text()
+        Buy = float(selected_items[2].text())
+        Sell = float(selected_items[3].text())
+        Logic = int(selected_items[4].text())
+        Delay = int(selected_items[5].text())
+        Active = int(selected_items[6].text())
+        Flag = bool(selected_items[7].text())
+        Stop = int(selected_items[8].text())
+        IP = selected_items[9].text()
+
+        if Logic == 0:
+            Logic = False
+        else:
+            Logic = True
+
+        if Active == 0:
+            Active = False
+        else:
+            Active = True
+
+        if Stop == 0:
+            Stop = False
+        else:
+            Stop = True
+        print("bool", Logic, Active, Stop)
+
+        self.ui.sBxID.setValue(ID)
+        self.ui.leInstrument.setText(Instrument)
+        self.ui.dsBxBuy.setValue(Buy)
+        self.ui.dsBxSell.setValue(Sell)
+        self.ui.chBxLogic.setChecked(Logic)
+        self.ui.sBxDelay.setValue(Delay)
+        self.ui.chBxActive.setChecked(Active)
+        self.ui.chBxStop.setChecked(Stop)
+        self.ui.leIP.setText(IP)
+        self.ui.groupBox.setEnabled(True)
 
 app = QtWidgets.QApplication([])
 application = helper_DB(com)
